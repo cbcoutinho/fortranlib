@@ -239,6 +239,8 @@ module lib_array
      module procedure logical2int
   end interface int
 
+  public :: invert_matrix
+
 contains
 
   elemental integer function logical2int(a) result(b)
