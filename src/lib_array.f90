@@ -1,4 +1,4 @@
-! MD5 of template: 4316f2ce989c9690cf210fc8d8caed14
+! MD5 of template: 34391d3cec1c23f9ce9a2d5827e41406
 ! Array related routines (Integration, Interpolation, etc.)
 !
 ! ------------------------------------------------------------------------------
@@ -240,6 +240,16 @@ module lib_array
   end interface int
 
   public :: invert_matrix
+  interface invert_matrix
+    module procedure invert_matrix_sp
+    module procedure invert_matrix_dp
+  end interface invert_matrix
+
+  public :: smooth_2d
+  interface smooth_2d
+    module procedure smooth_2d_sp
+    module procedure smooth_2d_dp
+  end interface smooth_2d
 
 contains
 
@@ -1289,6 +1299,58 @@ contains
   end subroutine test_quicksort_dp
 
 
+
+  subroutine invert_matrix_dp(n,a,c)
+
+    implicit none
+
+    integer,intent(in) :: n
+    ! size of the matrix
+
+    real(dp),dimension(n,n),intent(in)  :: a
+    real(dp),dimension(n,n),intent(out) :: c
+    ! the input and output matrices
+
+    real(dp),dimension(n,n) :: b
+
+    integer :: i,j
+    real(dp) :: scale
+
+    ! a is the input matrix
+
+    ! b is initially set to a
+
+    b = a
+
+    ! c is initially an identity matrix
+
+    c = 0._dp
+    forall(i=1:n) c(i,i) = 1._dp
+
+    ! Go through each row, and sutract from all subsequent rows
+
+    do i=1,n
+       do j=i+1,n
+          scale = -b(i,j)/b(i,i)
+          b(:,j) = b(:,j)+scale*b(:,i)
+          c(:,j) = c(:,j)+scale*c(:,i)
+       end do
+    end do
+
+    do j=1,n-1
+       do i=j+1,n
+          scale = -b(i,j)/b(i,i)
+          b(:,j) = b(:,j)+scale*b(:,i)
+          c(:,j) = c(:,j)+scale*c(:,i)
+       end do
+    end do
+
+    forall(i=1:n,j=1:n) c(i,j) = c(i,j)/b(j,j)
+    forall(i=1:n,j=1:n) b(i,j) = b(i,j)/b(j,j)
+
+  end subroutine invert_matrix_dp
+
+
   subroutine linspace_sp(xmin,xmax,x)
     implicit none
     real(sp),intent(in) :: xmin,xmax
@@ -2295,21 +2357,22 @@ contains
   end subroutine test_quicksort_sp
 
 
-  subroutine invert_matrix_<T>(n,a,c)
+
+  subroutine invert_matrix_sp(n,a,c)
 
     implicit none
 
     integer,intent(in) :: n
     ! size of the matrix
 
-    real(<T>),dimension(n,n),intent(in)  :: a
-    real(<T>),dimension(n,n),intent(out) :: c
+    real(sp),dimension(n,n),intent(in)  :: a
+    real(sp),dimension(n,n),intent(out) :: c
     ! the input and output matrices
 
-    real(<T>),dimension(n,n) :: b
+    real(sp),dimension(n,n) :: b
 
     integer :: i,j
-    real(<T>) :: scale
+    real(sp) :: scale
 
     ! a is the input matrix
 
@@ -2319,8 +2382,8 @@ contains
 
     ! c is initially an identity matrix
 
-    c = 0._<T>
-    forall(i=1:n) c(i,i) = 1._<T>
+    c = 0._sp
+    forall(i=1:n) c(i,i) = 1._sp
 
     ! Go through each row, and sutract from all subsequent rows
 
@@ -2343,83 +2406,83 @@ contains
     forall(i=1:n,j=1:n) c(i,j) = c(i,j)/b(j,j)
     forall(i=1:n,j=1:n) b(i,j) = b(i,j)/b(j,j)
 
-  end subroutine invert_matrix_<T>
+  end subroutine invert_matrix_sp
 
 
-  subroutine print_matrix(a)
+  ! subroutine print_matrix(a)
+  !
+  !   implicit none
+  !
+  !   integer :: nx,ny
+  !   real(dp),dimension(:,:),intent(in) :: a
+  !
+  !   integer :: i
+  !
+  !   character(len=20) :: fmt
+  !
+  !   nx = size(a,1)
+  !   ny = size(a,2)
+  !
+  !   write(fmt,'("(",I3.3,"(F9.5,1X))")') nx
+  !
+  !   do i=1,ny
+  !      write(*,fmt) a(:,i)
+  !   end do
+  !
+  ! end subroutine print_matrix
+
+
+  ! subroutine bin_array(n,x,y,n_bin,xmin,xmax,x_bin,y_bin)
+  !
+  !   implicit none
+  !
+  !   integer,intent(in) :: n,n_bin
+  !   real(dp),dimension(n),intent(in) :: x,y
+  !   real(dp),dimension(n_bin),intent(out) :: x_bin,y_bin
+  !
+  !   real(dp),dimension(n_bin) :: s,c
+  !
+  !   real(dp) :: xmin,xmax
+  !
+  !   integer :: i,ix
+  !
+  !   s = 0.
+  !   c = 0.
+  !
+  !   do i=1,n
+  !
+  !      ix = ipos(xmin,xmax,x(i),n_bin)
+  !
+  !      if(ix.ge.1.and.ix.le.n_bin) then
+  !         c(ix)  = c(ix) + 1.
+  !         s(ix)  = s(ix) + y(i)
+  !      end if
+  !
+  !   end do
+  !
+  !   do i=1,n_bin
+  !      x_bin(i) = xval(xmin,xmax,i,n_bin)
+  !   end do
+  !
+  !   y_bin = s / c
+  !
+  ! end subroutine bin_array
+
+
+  subroutine smooth_2d_dp(array,sigma)
 
     implicit none
+
+    real(dp),intent(inout) :: array(:,:)
 
     integer :: nx,ny
-    real(dp),dimension(:,:),intent(in) :: a
+    real(dp),allocatable :: array_orig(:,:),array_count(:,:)
 
-    integer :: i
-
-    character(len=20) :: fmt
-
-    nx = size(a,1)
-    ny = size(a,2)
-
-    write(fmt,'("(",I3.3,"(F9.5,1X))")') nx
-
-    do i=1,ny
-       write(*,fmt) a(:,i)
-    end do
-
-  end subroutine print_matrix
-
-
-  subroutine bin_array(n,x,y,n_bin,xmin,xmax,x_bin,y_bin)
-
-    implicit none
-
-    integer,intent(in) :: n,n_bin
-    real(dp),dimension(n),intent(in) :: x,y
-    real(dp),dimension(n_bin),intent(out) :: x_bin,y_bin
-
-    real(dp),dimension(n_bin) :: s,c
-
-    real(dp) :: xmin,xmax
-
-    integer :: i,ix
-
-    s = 0.
-    c = 0.
-
-    do i=1,n
-
-       ix = ipos(xmin,xmax,x(i),n_bin)
-
-       if(ix.ge.1.and.ix.le.n_bin) then
-          c(ix)  = c(ix) + 1.
-          s(ix)  = s(ix) + y(i)
-       end if
-
-    end do
-
-    do i=1,n_bin
-       x_bin(i) = xval(xmin,xmax,i,n_bin)
-    end do
-
-    y_bin = s / c
-
-  end subroutine bin_array
-
-
-  subroutine smooth_2d_<T>(array,sigma)
-
-    implicit none
-
-    real(<T>),intent(inout) :: array(:,:)
-
-    integer :: nx,ny
-    real(<T>),allocatable :: array_orig(:,:),array_count(:,:)
-
-    real(<T>),intent(in) :: sigma
+    real(dp),intent(in) :: sigma
 
     integer :: i,j,ii,jj,imin,imax,jmin,jmax,w
 
-    real(<T>) :: dx,dy,d
+    real(dp) :: dx,dy,d
 
     nx = size(array,1)
     ny = size(array,2)
@@ -2427,10 +2490,10 @@ contains
     allocate(array_orig(nx,ny),array_count(nx,ny))
 
     array_orig  = array
-    array       = 0._<T>
-    array_count = 0._<T>
+    array       = 0._dp
+    array_count = 0._dp
 
-    w = nint(sigma * 5._<T>)
+    w = nint(sigma * 5._dp)
 
     do i=1,nx
        do j=1,ny
@@ -2443,13 +2506,13 @@ contains
           do ii=imin,imax
              do jj=jmin,jmax
 
-                dx = real(ii-i,<T>) / sigma
-                dy = real(jj-j,<T>) / sigma
+                dx = real(ii-i,dp) / sigma
+                dy = real(jj-j,dp) / sigma
 
                 d = dx*dx+dy*dy
 
-                array(i,j) = array(i,j) + array_orig(ii,jj) * exp(-d/2._<T>)
-                array_count(i,j) = array_count(i,j) + exp(-d/2._<T>)
+                array(i,j) = array(i,j) + array_orig(ii,jj) * exp(-d/2._dp)
+                array_count(i,j) = array_count(i,j) + exp(-d/2._dp)
 
              end do
           end do
@@ -2459,6 +2522,63 @@ contains
 
     array = array / array_count
 
-  end subroutine smooth_2d_<T>
+  end subroutine smooth_2d_dp
+
+
+  subroutine smooth_2d_sp(array,sigma)
+
+    implicit none
+
+    real(sp),intent(inout) :: array(:,:)
+
+    integer :: nx,ny
+    real(sp),allocatable :: array_orig(:,:),array_count(:,:)
+
+    real(sp),intent(in) :: sigma
+
+    integer :: i,j,ii,jj,imin,imax,jmin,jmax,w
+
+    real(sp) :: dx,dy,d
+
+    nx = size(array,1)
+    ny = size(array,2)
+
+    allocate(array_orig(nx,ny),array_count(nx,ny))
+
+    array_orig  = array
+    array       = 0._sp
+    array_count = 0._sp
+
+    w = nint(sigma * 5._sp)
+
+    do i=1,nx
+       do j=1,ny
+
+          imin = max( 1,i-w)
+          imax = min(nx,i+w)
+          jmin = max( 1,j-w)
+          jmax = min(ny,j+w)
+
+          do ii=imin,imax
+             do jj=jmin,jmax
+
+                dx = real(ii-i,sp) / sigma
+                dy = real(jj-j,sp) / sigma
+
+                d = dx*dx+dy*dy
+
+                array(i,j) = array(i,j) + array_orig(ii,jj) * exp(-d/2._sp)
+                array_count(i,j) = array_count(i,j) + exp(-d/2._sp)
+
+             end do
+          end do
+
+       end do
+    end do
+
+    array = array / array_count
+
+  end subroutine smooth_2d_sp
+
 
 end module lib_array
