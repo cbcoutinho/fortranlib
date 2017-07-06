@@ -1271,21 +1271,21 @@ contains
 
   !!@END FOR
 
-  subroutine invert_matrix(n,a,c)
+  subroutine invert_matrix_<T>(n,a,c)
 
     implicit none
 
     integer,intent(in) :: n
     ! size of the matrix
 
-    real(dp),dimension(n,n),intent(in)  :: a
-    real(dp),dimension(n,n),intent(out) :: c
+    real(<T>),dimension(n,n),intent(in)  :: a
+    real(<T>),dimension(n,n),intent(out) :: c
     ! the input and output matrices
 
-    real(dp),dimension(n,n) :: b
+    real(<T>),dimension(n,n) :: b
 
     integer :: i,j
-    real(dp) :: scale
+    real(<T>) :: scale
 
     ! a is the input matrix
 
@@ -1295,8 +1295,8 @@ contains
 
     ! c is initially an identity matrix
 
-    c = 0._dp
-    forall(i=1:n) c(i,i) = 1._dp
+    c = 0._<T>
+    forall(i=1:n) c(i,i) = 1._<T>
 
     ! Go through each row, and sutract from all subsequent rows
 
@@ -1319,7 +1319,7 @@ contains
     forall(i=1:n,j=1:n) c(i,j) = c(i,j)/b(j,j)
     forall(i=1:n,j=1:n) b(i,j) = b(i,j)/b(j,j)
 
-  end subroutine invert_matrix
+  end subroutine invert_matrix_<T>
 
 
   subroutine print_matrix(a)
@@ -1382,20 +1382,20 @@ contains
   end subroutine bin_array
 
 
-  subroutine smooth_2d(array,sigma)
+  subroutine smooth_2d_<T>(array,sigma)
 
     implicit none
 
-    real,intent(inout) :: array(:,:)
+    real(<T>),intent(inout) :: array(:,:)
 
     integer :: nx,ny
-    real,allocatable :: array_orig(:,:),array_count(:,:)
+    real(<T>),allocatable :: array_orig(:,:),array_count(:,:)
 
-    real,intent(in) :: sigma
+    real(<T>),intent(in) :: sigma
 
     integer :: i,j,ii,jj,imin,imax,jmin,jmax,w
 
-    real :: dx,dy,d
+    real(<T>) :: dx,dy,d
 
     nx = size(array,1)
     ny = size(array,2)
@@ -1403,10 +1403,10 @@ contains
     allocate(array_orig(nx,ny),array_count(nx,ny))
 
     array_orig  = array
-    array       = 0.
-    array_count = 0.
+    array       = 0._<T>
+    array_count = 0._<T>
 
-    w = nint(sigma * 5._dp)
+    w = nint(sigma * 5._<T>)
 
     do i=1,nx
        do j=1,ny
@@ -1419,13 +1419,13 @@ contains
           do ii=imin,imax
              do jj=jmin,jmax
 
-                dx = real(ii-i) / sigma
-                dy = real(jj-j) / sigma
+                dx = real(ii-i,<T>) / sigma
+                dy = real(jj-j,<T>) / sigma
 
                 d = dx*dx+dy*dy
 
-                array(i,j) = array(i,j) + array_orig(ii,jj) * exp(-d/2._dp)
-                array_count(i,j) = array_count(i,j) + exp(-d/2._dp)
+                array(i,j) = array(i,j) + array_orig(ii,jj) * exp(-d/2._<T>)
+                array_count(i,j) = array_count(i,j) + exp(-d/2._<T>)
 
              end do
           end do
@@ -1435,6 +1435,6 @@ contains
 
     array = array / array_count
 
-  end subroutine smooth_2d
+  end subroutine smooth_2d_<T>
 
 end module lib_array
